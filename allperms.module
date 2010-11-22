@@ -1,6 +1,38 @@
 <?php
 // $Id: allperms.module,v 1.2 2010/05/03 00:38:06 cafuego Exp $
 
+/**
+ * Implementation of hook_menu()
+ *
+ * If admin_menu is installed, having roles expand under
+ * the User » Permissions menu is actually really nice.
+ */
+function allperms_menu() {
+  if (!module_exists('admin_menu'))
+    return array();
+
+  $items = array();
+  foreach (user_roles() as $rid => $role) {
+    $items['admin/user/permissions/role/' . $rid] = array(
+      'title' => $role,
+      'description' => 'Determine access to features by selecting permissions for ' . $role . '.',
+      'page callback' => 'allperms_user_admin_perm_redir',
+      'page arguments' => array(4),
+      'access callback' => 'user_access',
+      'access arguments' => array('administer permissions'),
+    );
+  }
+  return $items;
+}
+
+/**
+ * Helper to redirect the user to the correct role based
+ * permissions admin page.
+ */
+function allperms_user_admin_perm_redir($rid) {
+  drupal_goto('admin/user/permissions/'. $rid);
+}
+
 function allperms_insert_anchors($element) {
   $element['#prefix'] = '<a href="#' . $element['#value'] . '"></a>';
   return($element);
@@ -14,15 +46,6 @@ function allperms_insert_anchors($element) {
  * we add can do its thing.
  */
 function allperms_form_user_admin_perm_alter(&$form, &$form_state) {
-
-/*
-  foreach ($form['permission'] as $key => $val) {
-    if (is_integer($key)) {
-      $form['permission'][$key]['#pre_render'] = array('allperms_insert_anchors');
-    }
-  }
-  dpm($form);
-*/
 
   foreach ($form['role_names'] as $num => $role) {
 
@@ -58,5 +81,20 @@ function allperms_form_user_admin_perm_alter(&$form, &$form_state) {
 });";
 
     drupal_add_js($js, 'inline');
+  }
+
+  // Our validation handler MUST run first, so the 'select all' checkbox can be removed
+  // to stop the actual form handler from whining.
+  $form['#validate'] = is_array($form['#validate']) ? $form['#validate'] : array();
+  array_unshift($form['#validate'], 'allperms_form_user_admin_perm_validate');
+}
+
+/**
+ * Helper for the validation handler.
+ */
+function allperms_form_user_admin_perm_validate($form, &$form_state) {
+  dpm($form_state);
+  foreach ($form['role_names'] as $num => $role) {
+    unset($form_state['values'][$num . '[select all]']);
   }
 }
