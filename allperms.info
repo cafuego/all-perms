@@ -1,0 +1,5 @@
+; $Id: allperms.info,v 1.2 2010/05/03 00:38:06 cafuego Exp $
+name = All Permissions
+description = Assign or remove all permissions to or from a role with a single mouse click.
+core = 6.x
+package = "Administration"
